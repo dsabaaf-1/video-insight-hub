@@ -219,7 +219,6 @@ const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
               {/* Next Steps */}
               <NextSteps currentPage="analyze" onNavigate={onNavigate} />
             </div>
-          )}
         </div>
 
         {/* Right Panel 40% */}
