@@ -1,5 +1,5 @@
-const SkeletonBar = ({ className = "" }: { className?: string }) => (
-  <div className={`bg-muted animate-pulse rounded ${className}`} />
+const SkeletonBar = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
+  <div className={`bg-muted animate-pulse rounded ${className}`} style={style} />
 );
 
 export const DNASkeleton = () => (
