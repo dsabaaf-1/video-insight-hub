@@ -2,27 +2,19 @@ import { useState } from "react";
 import UploadHero from "../components/UploadHero";
 import PreloadedBanner from "../components/PreloadedBanner";
 import NextSteps from "../components/NextSteps";
+import VideoPlayer from "../components/VideoPlayer";
+import { useVideo } from "@/contexts/VideoContext";
 
-type Page = "analyze" | "extract" | "transcribe" | "summarize" | "search";
-
-interface ExtractPageProps {
-  onNavigate: (page: Page) => void;
-  preloadedVideo: string | null;
-  onVideoLoaded: (f: string) => void;
-}
-
-const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageProps) => {
-  const [hasVideo, setHasVideo] = useState(!!preloadedVideo);
-  const [showBanner, setShowBanner] = useState(!!preloadedVideo);
+const ExtractPage = () => {
+  const { hasVideo, setVideo, filename } = useVideo();
+  const [showBanner, setShowBanner] = useState(true);
   const [extracted, setExtracted] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [interval, setIntervalVal] = useState("2s");
   const [format, setFormat] = useState("JPG");
+  const [selectedFrames, setSelectedFrames] = useState<Set<number>>(new Set());
 
-  const handleUpload = (file: File) => {
-    setHasVideo(true);
-    onVideoLoaded(file.name);
-  };
+  const handleUpload = (file: File) => setVideo(file);
 
   const handleExtract = () => {
     setExtracting(true);
@@ -30,6 +22,14 @@ const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageP
       setExtracting(false);
       setExtracted(true);
     }, 2000);
+  };
+
+  const toggleFrame = (i: number) => {
+    setSelectedFrames(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
   };
 
   if (!hasVideo) {
@@ -43,21 +43,23 @@ const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageP
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      {showBanner && preloadedVideo && (
-        <PreloadedBanner filename={preloadedVideo} onDismiss={() => setShowBanner(false)} />
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 animate-fade-in">
+      {showBanner && filename && (
+        <PreloadedBanner filename={filename} onDismiss={() => setShowBanner(false)} />
       )}
 
+      <VideoPlayer compact />
+
       {/* Settings */}
-      <div className="bg-card border border-border rounded-card p-6 mb-6 animate-slide-up">
+      <div className="bg-card border border-border rounded-card p-4 md:p-6 mb-6 mt-4 animate-slide-up">
         <h2 className="text-[15px] font-semibold mb-4">Extraction Settings</h2>
-        <div className="flex gap-6 items-end">
+        <div className="flex flex-wrap gap-4 md:gap-6 items-end">
           <div>
             <label className="text-[12px] text-muted-foreground block mb-1">Extract every</label>
             <select
               value={interval}
               onChange={(e) => setIntervalVal(e.target.value)}
-              className="border border-border rounded-btn px-3 py-1.5 text-[13px] bg-card"
+              className="border border-border rounded-btn px-3 py-2 text-[13px] bg-card min-h-[44px]"
             >
               <option>1s</option>
               <option>2s</option>
@@ -70,21 +72,21 @@ const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageP
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value)}
-              className="border border-border rounded-btn px-3 py-1.5 text-[13px] bg-card"
+              className="border border-border rounded-btn px-3 py-2 text-[13px] bg-card min-h-[44px]"
             >
               <option>JPG</option>
               <option>PNG</option>
               <option>WEBP</option>
             </select>
           </div>
-          <div>
+          <div className="hidden md:block">
             <label className="text-[12px] text-muted-foreground block mb-1">Quality</label>
             <input type="range" min="50" max="100" defaultValue="90" className="w-32 accent-amber-500" />
           </div>
           <button
             onClick={handleExtract}
             disabled={extracting}
-            className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all disabled:opacity-50"
+            className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all disabled:opacity-50 min-h-[44px] hover:scale-[1.02] active:scale-[0.98]"
           >
             {extracting ? "Extracting…" : "Extract Frames"}
           </button>
@@ -94,30 +96,40 @@ const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageP
       {/* Frames Grid */}
       {extracted && (
         <div className="animate-slide-up">
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
             {Array.from({ length: 9 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-video rounded-btn overflow-hidden relative shadow-sm"
+                onClick={() => toggleFrame(i)}
+                className={`aspect-video rounded-btn overflow-hidden relative shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+                  selectedFrames.has(i) ? "ring-2 ring-amber-500 ring-offset-2" : ""
+                }`}
                 style={{
                   background: `linear-gradient(135deg, hsl(${200 + i * 12}, 20%, ${40 + i * 4}%), hsl(${220 + i * 8}, 15%, ${55 + i * 3}%))`,
                 }}
               >
+                {selectedFrames.has(i) && (
+                  <div className="absolute top-2 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-[10px]">✓</span>
+                  </div>
+                )}
                 <span className="absolute bottom-1.5 left-1.5 font-mono text-[10px] bg-foreground/60 text-primary-foreground px-1.5 py-0.5 rounded">
                   0:{String(i * 2).padStart(2, "0")}
                 </span>
               </div>
             ))}
           </div>
-          <div className="flex gap-3">
-            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all">
+          <div className="flex flex-wrap gap-3">
+            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] hover:scale-[1.02]">
               Download all frames
             </button>
-            <button className="border border-amber-500 text-amber-600 bg-card hover:bg-amber-50 text-[13px] font-medium px-5 py-2 rounded-btn transition-all">
-              Download selected
-            </button>
+            {selectedFrames.size > 0 && (
+              <button className="border border-amber-500 text-amber-600 bg-card hover:bg-amber-50 text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] animate-fade-in">
+                Download {selectedFrames.size} selected
+              </button>
+            )}
           </div>
-          <NextSteps currentPage="extract" onNavigate={onNavigate} />
+          <NextSteps currentPage="/extract" />
         </div>
       )}
     </div>

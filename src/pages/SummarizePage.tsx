@@ -2,14 +2,8 @@ import { useState } from "react";
 import UploadHero from "../components/UploadHero";
 import PreloadedBanner from "../components/PreloadedBanner";
 import NextSteps from "../components/NextSteps";
-
-type Page = "analyze" | "extract" | "transcribe" | "summarize" | "search";
-
-interface SummarizePageProps {
-  onNavigate: (page: Page) => void;
-  preloadedVideo: string | null;
-  onVideoLoaded: (f: string) => void;
-}
+import VideoPlayer from "../components/VideoPlayer";
+import { useVideo } from "@/contexts/VideoContext";
 
 const mockKeyMoments = [
   { time: "0:00", desc: "Opening shot — stadium exterior, crowd arriving" },
@@ -19,16 +13,14 @@ const mockKeyMoments = [
   { time: "0:14", desc: "Celebration — team gathers at corner flag" },
 ];
 
-const SummarizePage = ({ onNavigate, preloadedVideo, onVideoLoaded }: SummarizePageProps) => {
-  const [hasVideo, setHasVideo] = useState(!!preloadedVideo);
-  const [showBanner, setShowBanner] = useState(!!preloadedVideo);
+const SummarizePage = () => {
+  const { hasVideo, setVideo, filename } = useVideo();
+  const [showBanner, setShowBanner] = useState(true);
   const [summarized, setSummarized] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [summaryLength, setSummaryLength] = useState<"short" | "medium" | "detailed">("medium");
 
-  const handleUpload = (file: File) => {
-    setHasVideo(true);
-    onVideoLoaded(file.name);
-  };
+  const handleUpload = (file: File) => setVideo(file);
 
   const startSummarize = () => {
     setProcessing(true);
@@ -36,6 +28,12 @@ const SummarizePage = ({ onNavigate, preloadedVideo, onVideoLoaded }: SummarizeP
       setProcessing(false);
       setSummarized(true);
     }, 2000);
+  };
+
+  const summaries = {
+    short: "A 14-second football clip capturing a stunning long-range goal and celebration.",
+    medium: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations.",
+    detailed: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The match kicks off with an immediate attacking play down the left wing. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations as teammates converge at the corner flag. The cinematography captures both the technical brilliance of the strike and the raw emotion of the celebration.",
   };
 
   if (!hasVideo) {
@@ -49,56 +47,88 @@ const SummarizePage = ({ onNavigate, preloadedVideo, onVideoLoaded }: SummarizeP
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
-      {showBanner && preloadedVideo && (
-        <PreloadedBanner filename={preloadedVideo} onDismiss={() => setShowBanner(false)} />
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 animate-fade-in">
+      {showBanner && filename && (
+        <PreloadedBanner filename={filename} onDismiss={() => setShowBanner(false)} />
       )}
 
+      <VideoPlayer compact />
+
       {!summarized ? (
-        <div className="text-center animate-slide-up">
+        <div className="text-center animate-slide-up mt-6 space-y-4">
+          {/* Summary length selector */}
+          <div className="flex justify-center gap-2">
+            {(["short", "medium", "detailed"] as const).map((len) => (
+              <button
+                key={len}
+                onClick={() => setSummaryLength(len)}
+                className={`text-[12px] px-3 py-1.5 rounded-pill border transition-all min-h-[36px] capitalize ${
+                  summaryLength === len
+                    ? "bg-amber-100 border-amber-300 text-amber-700"
+                    : "border-border text-muted-foreground hover:border-amber-200"
+                }`}
+              >
+                {len}
+              </button>
+            ))}
+          </div>
           <button
             onClick={startSummarize}
             disabled={processing}
-            className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[14px] font-medium px-8 py-3 rounded-btn transition-all disabled:opacity-50"
+            className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[14px] font-medium px-8 py-3 rounded-btn transition-all disabled:opacity-50 min-h-[48px] hover:scale-[1.02] active:scale-[0.98]"
           >
             {processing ? "Generating summary…" : "Generate Summary"}
           </button>
         </div>
       ) : (
-        <div className="animate-slide-up space-y-6">
-          {/* Summary */}
-          <div className="bg-card border border-border rounded-card p-6">
+        <div className="animate-slide-up space-y-6 mt-6">
+          {/* Length toggle */}
+          <div className="flex gap-2">
+            {(["short", "medium", "detailed"] as const).map((len) => (
+              <button
+                key={len}
+                onClick={() => setSummaryLength(len)}
+                className={`text-[12px] px-3 py-1.5 rounded-pill border transition-all capitalize ${
+                  summaryLength === len
+                    ? "bg-amber-100 border-amber-300 text-amber-700"
+                    : "border-border text-muted-foreground hover:border-amber-200"
+                }`}
+              >
+                {len}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-card border border-border rounded-card p-4 md:p-6">
             <h2 className="text-[15px] font-semibold mb-3">Video Summary</h2>
-            <p className="text-[14px] text-foreground leading-relaxed">
-              This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The match kicks off with an immediate attacking play down the left wing. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations as teammates converge at the corner flag.
+            <p className="text-[13px] md:text-[14px] text-foreground leading-relaxed">
+              {summaries[summaryLength]}
             </p>
           </div>
 
-          {/* Key Moments */}
-          <div className="bg-card border border-border rounded-card p-6">
+          <div className="bg-card border border-border rounded-card p-4 md:p-6">
             <h2 className="text-[15px] font-semibold mb-4">Key Moments</h2>
             <div className="space-y-3">
               {mockKeyMoments.map((m, i) => (
-                <div key={i} className="flex gap-4 items-start">
-                  <div className="w-1 h-full bg-amber-300 rounded-full shrink-0 self-stretch min-h-[20px]" />
+                <div key={i} className="flex gap-3 md:gap-4 items-start group cursor-pointer">
+                  <div className="w-1 h-full bg-amber-300 rounded-full shrink-0 self-stretch min-h-[20px] group-hover:bg-amber-500 transition-colors" />
                   <span className="font-mono text-[12px] text-amber-600 shrink-0 pt-0.5">{m.time}</span>
-                  <p className="text-[13px] text-foreground">{m.desc}</p>
+                  <p className="text-[13px] text-foreground group-hover:text-amber-700 transition-colors">{m.desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all">
+          <div className="flex flex-wrap gap-3">
+            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Copy summary
             </button>
-            <button className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all">
+            <button className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Download as PDF
             </button>
           </div>
 
-          <NextSteps currentPage="summarize" onNavigate={onNavigate} />
+          <NextSteps currentPage="/summarize" />
         </div>
       )}
     </div>
