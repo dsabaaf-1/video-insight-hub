@@ -25,9 +25,9 @@ const SummarizePage = ({ onNavigate, preloadedVideo, onVideoLoaded }: SummarizeP
   const [summarized, setSummarized] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  const handleUpload = () => {
+  const handleUpload = (file: File) => {
     setHasVideo(true);
-    onVideoLoaded("football_kick.mp4");
+    onVideoLoaded(file.name);
   };
 
   const startSummarize = () => {

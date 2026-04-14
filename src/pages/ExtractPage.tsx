@@ -19,9 +19,9 @@ const ExtractPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: ExtractPageP
   const [interval, setIntervalVal] = useState("2s");
   const [format, setFormat] = useState("JPG");
 
-  const handleUpload = () => {
+  const handleUpload = (file: File) => {
     setHasVideo(true);
-    onVideoLoaded("football_kick.mp4");
+    onVideoLoaded(file.name);
   };
 
   const handleExtract = () => {

@@ -27,9 +27,9 @@ const SearchPage = ({ onNavigate, preloadedVideo, onVideoLoaded }: SearchPagePro
   const [results, setResults] = useState<typeof mockResults | null>(null);
   const [searching, setSearching] = useState(false);
 
-  const handleUpload = () => {
+  const handleUpload = (file: File) => {
     setHasVideo(true);
-    onVideoLoaded("football_kick.mp4");
+    onVideoLoaded(file.name);
   };
 
   const handleSearch = () => {

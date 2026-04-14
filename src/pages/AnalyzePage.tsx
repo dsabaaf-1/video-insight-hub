@@ -34,6 +34,7 @@ interface ChatMsg {
 
 const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
   const [hasVideo, setHasVideo] = useState(false);
+  const [videoFile, setVideoFile] = useState<string>("");
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -47,9 +48,10 @@ const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages, isTyping]);
 
-  const handleUpload = () => {
+  const handleUpload = (file: File) => {
+    setVideoFile(file.name);
     setHasVideo(true);
-    onVideoLoaded("football_kick.mp4");
+    onVideoLoaded(file.name);
   };
 
   const handleAnalyze = () => {
@@ -97,6 +99,43 @@ const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
         subtitle="Extract frames, ask questions, and understand any video with AI"
         onFileSelect={handleUpload}
       />
+    );
+  }
+
+  if (!isAnalyzed && !isAnalyzing) {
+    return (
+      <div className="flex flex-col items-center pt-20 pb-10 px-4">
+        <div className="bg-card border border-border rounded-[14px] p-8 w-full max-w-md text-center shadow-sm">
+          <div className="w-14 h-14 rounded-xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">🎬</span>
+          </div>
+          <p className="text-[15px] font-medium text-foreground">{videoFile}</p>
+          <p className="text-[13px] text-muted-foreground mt-1">Ready to analyze</p>
+          <button
+            onClick={handleAnalyze}
+            className="mt-6 w-full h-[48px] bg-amber-500 hover:bg-amber-600 text-white text-[15px] font-medium rounded-btn transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            ✦ Analyze Video
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAnalyzing) {
+    return (
+      <div className="flex flex-col items-center pt-20 pb-10 px-4">
+        <div className="bg-card border border-border rounded-[14px] p-8 w-full max-w-md text-center shadow-sm">
+          <div className="w-14 h-14 rounded-xl bg-amber-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-2xl">⏳</span>
+          </div>
+          <p className="text-[15px] font-medium text-foreground">Analyzing {videoFile}...</p>
+          <p className="text-[13px] text-muted-foreground mt-1">This may take a moment</p>
+          <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full animate-pulse" style={{ width: "60%" }} />
+          </div>
+        </div>
+      </div>
     );
   }
 

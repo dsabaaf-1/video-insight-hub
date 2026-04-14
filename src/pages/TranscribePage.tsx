@@ -27,9 +27,9 @@ const TranscribePage = ({ onNavigate, preloadedVideo, onVideoLoaded }: Transcrib
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleUpload = () => {
+  const handleUpload = (file: File) => {
     setHasVideo(true);
-    onVideoLoaded("football_kick.mp4");
+    onVideoLoaded(file.name);
   };
 
   const startTranscribe = () => {
