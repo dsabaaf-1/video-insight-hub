@@ -149,20 +149,11 @@ const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
             <div className="text-primary-foreground/60 text-sm">▶ Video Preview</div>
           </div>
           <div className="flex items-center justify-between mb-4">
-            <span className="font-mono text-[12px] text-muted-foreground">football_kick.mp4</span>
+            <span className="font-mono text-[12px] text-muted-foreground">{videoFile}</span>
             <span className="font-mono text-[12px] text-muted-foreground">0:14</span>
           </div>
 
-          {!isAnalyzed ? (
-            <button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="w-full border-2 border-amber-500 text-amber-600 bg-card hover:bg-amber-50 font-medium text-[14px] py-2.5 rounded-btn transition-all duration-200 disabled:opacity-50"
-            >
-              {isAnalyzing ? "Analyzing..." : "✦ Analyze Video"}
-            </button>
-          ) : (
-            <div className="space-y-6">
+          <div className="space-y-6">
               {/* Video DNA */}
               <div className="animate-slide-up">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Video DNA</p>
