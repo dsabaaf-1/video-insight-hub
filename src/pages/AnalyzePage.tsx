@@ -1,0 +1,291 @@
+import { useState, useRef, useEffect } from "react";
+import { Send } from "lucide-react";
+import UploadHero from "../components/UploadHero";
+import NextSteps from "../components/NextSteps";
+
+type Page = "analyze" | "extract" | "transcribe" | "summarize" | "search";
+
+interface AnalyzePageProps {
+  onNavigate: (page: Page) => void;
+  onVideoLoaded: (filename: string) => void;
+}
+
+const suggestions = [
+  "What happens at the start?",
+  "Describe the main action",
+  "When does the scene change?",
+  "Summarize key moments",
+];
+
+const mockScenes = [
+  { label: "Scene 1", time: "0:00–0:04" },
+  { label: "Scene 2", time: "0:05–0:08" },
+  { label: "Scene 3", time: "0:09–0:14" },
+];
+
+const dnaHeights = [18, 24, 12, 28, 20, 14, 26, 10, 22, 16, 28, 20, 8, 24, 18, 12, 26, 22, 14, 28, 16, 20, 10, 24, 18, 26, 12, 22];
+const dnaTimestamps = ["0s", "3s", "6s", "9s", "12s", "14s"];
+
+interface ChatMsg {
+  role: "user" | "assistant";
+  text: string;
+  frames?: number;
+}
+
+const AnalyzePage = ({ onNavigate, onVideoLoaded }: AnalyzePageProps) => {
+  const [hasVideo, setHasVideo] = useState(false);
+  const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [retrievedBars, setRetrievedBars] = useState<Set<number>>(new Set());
+  const [retrievedFrames, setRetrievedFrames] = useState<Set<number>>(new Set());
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages, isTyping]);
+
+  const handleUpload = () => {
+    setHasVideo(true);
+    onVideoLoaded("football_kick.mp4");
+  };
+
+  const handleAnalyze = () => {
+    setIsAnalyzing(true);
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      setIsAnalyzed(true);
+    }, 2000);
+  };
+
+  const handleSend = (text?: string) => {
+    const msg = text || input;
+    if (!msg.trim()) return;
+    setInput("");
+    setMessages((prev) => [...prev, { role: "user", text: msg }]);
+    setIsTyping(true);
+
+    // Mock retrieved segments
+    const newBars = new Set(retrievedBars);
+    const newFrames = new Set(retrievedFrames);
+    for (let i = 0; i < 3; i++) {
+      newBars.add(Math.floor(Math.random() * 28));
+      newFrames.add(Math.floor(Math.random() * 8));
+    }
+    setRetrievedBars(newBars);
+    setRetrievedFrames(newFrames);
+
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: "Based on the video analysis, the footage shows a dynamic sequence with clear motion patterns. The key action occurs between 0:04 and 0:08, featuring rapid movement and scene transitions.",
+          frames: 3,
+        },
+      ]);
+    }, 1800);
+  };
+
+  if (!hasVideo) {
+    return (
+      <UploadHero
+        heading="Analyze your video"
+        subtitle="Extract frames, ask questions, and understand any video with AI"
+        onFileSelect={handleUpload}
+      />
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="flex gap-6">
+        {/* Left Panel 60% */}
+        <div className="w-[60%]">
+          {/* Video Player */}
+          <div className="bg-foreground/90 rounded-[12px] h-[160px] flex items-center justify-center mb-2">
+            <div className="text-primary-foreground/60 text-sm">▶ Video Preview</div>
+          </div>
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-mono text-[12px] text-muted-foreground">football_kick.mp4</span>
+            <span className="font-mono text-[12px] text-muted-foreground">0:14</span>
+          </div>
+
+          {!isAnalyzed ? (
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              className="w-full border-2 border-amber-500 text-amber-600 bg-card hover:bg-amber-50 font-medium text-[14px] py-2.5 rounded-btn transition-all duration-200 disabled:opacity-50"
+            >
+              {isAnalyzing ? "Analyzing..." : "✦ Analyze Video"}
+            </button>
+          ) : (
+            <div className="space-y-6">
+              {/* Video DNA */}
+              <div className="animate-slide-up">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Video DNA</p>
+                <div className="flex items-end gap-[3px] h-[32px]">
+                  {dnaHeights.map((h, i) => (
+                    <div
+                      key={i}
+                      className={`w-[8px] rounded-t-sm animate-grow-up transition-all duration-300 ${
+                        retrievedBars.has(i)
+                          ? "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.5)]"
+                          : i < 14
+                          ? "bg-amber-300/60"
+                          : "bg-muted-foreground/30"
+                      }`}
+                      style={{ height: `${h}px`, animationDelay: `${i * 40}ms` }}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between mt-1">
+                  {dnaTimestamps.map((t) => (
+                    <span key={t} className="font-mono text-[10px] text-muted-foreground">{t}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scenes */}
+              <div className="animate-slide-up" style={{ animationDelay: "0.15s" }}>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {mockScenes.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex-shrink-0 bg-muted border-l-[3px] border-amber-400 px-3 py-1.5 rounded-badge"
+                    >
+                      <span className="text-[12px] font-medium text-foreground">{s.label}</span>
+                      <span className="text-[11px] text-muted-foreground ml-1.5">· {s.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Keyframes */}
+              <div className="animate-slide-up" style={{ animationDelay: "0.3s" }}>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`flex-shrink-0 w-[120px] h-[80px] rounded-btn relative overflow-hidden shadow-sm transition-all duration-300 ${
+                        retrievedFrames.has(i) ? "ring-2 ring-amber-500 -translate-y-[3px]" : ""
+                      }`}
+                      style={{
+                        background: `linear-gradient(135deg, hsl(${200 + i * 15}, 20%, ${40 + i * 5}%), hsl(${220 + i * 10}, 15%, ${55 + i * 3}%))`,
+                      }}
+                    >
+                      <span className="absolute top-1 left-1.5 text-[10px] text-primary-foreground/70">Scene {Math.ceil((i + 1) / 3)}</span>
+                      <span className="absolute bottom-1 left-1.5 font-mono text-[10px] bg-foreground/60 text-primary-foreground px-1 rounded">
+                        0:{String(i * 2).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <NextSteps currentPage="analyze" onNavigate={onNavigate} />
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel 40% */}
+        <div className="w-[40%] bg-card border border-border rounded-card p-4 flex flex-col h-[600px]">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-[15px] font-semibold text-foreground">Ask about your video</h2>
+            {isAnalyzed && (
+              <span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-pill font-medium">
+                ● Ready
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-muted-foreground mb-3">Responses grounded in your video frames</p>
+
+          {/* Chat */}
+          <div ref={chatRef} className="flex-1 overflow-y-auto space-y-3 mb-3">
+            {messages.length === 0 && !isTyping && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSend(s)}
+                    disabled={!isAnalyzed}
+                    className="text-[12px] bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-pill hover:bg-amber-100 transition-colors disabled:opacity-40"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] px-3 py-2 rounded-[12px] text-[13px] ${
+                    msg.role === "user"
+                      ? "bg-amber-100 border border-amber-200 text-foreground"
+                      : "bg-card border border-border shadow-sm text-foreground"
+                  }`}
+                >
+                  <p>{msg.text}</p>
+                  {msg.frames && (
+                    <details className="mt-1.5">
+                      <summary className="text-[11px] text-amber-600 cursor-pointer">
+                        ▶ {msg.frames} frames retrieved
+                      </summary>
+                      <div className="flex gap-1.5 mt-1.5">
+                        {Array.from({ length: msg.frames }).map((_, j) => (
+                          <div
+                            key={j}
+                            className="w-[40px] h-[28px] rounded-sm"
+                            style={{
+                              background: `linear-gradient(135deg, hsl(${210 + j * 20}, 20%, 45%), hsl(${230 + j * 15}, 15%, 55%))`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-card border border-border shadow-sm px-3 py-2 rounded-[12px] flex gap-1 items-center">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-dot-1" />
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-dot-2" />
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-dot-3" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="flex items-center gap-2 border border-border rounded-pill px-3 py-1.5 focus-within:border-amber-400 transition-colors">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Ask a question about your video…"
+              disabled={!isAnalyzed}
+              className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-muted-foreground disabled:opacity-40"
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={!isAnalyzed || !input.trim()}
+              className="w-7 h-7 bg-amber-500 hover:bg-amber-600 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+            >
+              <Send className="w-3.5 h-3.5 text-primary-foreground" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AnalyzePage;
