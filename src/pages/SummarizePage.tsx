@@ -4,6 +4,7 @@ import PreloadedBanner from "../components/PreloadedBanner";
 import NextSteps from "../components/NextSteps";
 import VideoPlayer from "../components/VideoPlayer";
 import { useVideo } from "@/contexts/VideoContext";
+import { useToast } from "@/hooks/use-toast";
 
 const mockKeyMoments = [
   { time: "0:00", desc: "Opening shot — stadium exterior, crowd arriving" },
@@ -13,8 +14,15 @@ const mockKeyMoments = [
   { time: "0:14", desc: "Celebration — team gathers at corner flag" },
 ];
 
+const summaries = {
+  short: "A 14-second football clip capturing a stunning long-range goal and celebration.",
+  medium: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations.",
+  detailed: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The match kicks off with an immediate attacking play down the left wing. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations as teammates converge at the corner flag. The cinematography captures both the technical brilliance of the strike and the raw emotion of the celebration.",
+};
+
 const SummarizePage = () => {
   const { hasVideo, setVideo, filename } = useVideo();
+  const { toast } = useToast();
   const [showBanner, setShowBanner] = useState(true);
   const [summarized, setSummarized] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -27,13 +35,25 @@ const SummarizePage = () => {
     setTimeout(() => {
       setProcessing(false);
       setSummarized(true);
+      toast({ title: "Summary generated", description: `${summaryLength} summary ready` });
     }, 2000);
   };
 
-  const summaries = {
-    short: "A 14-second football clip capturing a stunning long-range goal and celebration.",
-    medium: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations.",
-    detailed: "This 14-second video captures a pivotal moment during a football match. The footage opens with an establishing shot of the stadium as fans fill the stands. Both teams emerge from the tunnel to roaring applause. The match kicks off with an immediate attacking play down the left wing. The highlight is a remarkable long-range strike that sails past the goalkeeper into the top corner of the net. The video concludes with jubilant celebrations as teammates converge at the corner flag. The cinematography captures both the technical brilliance of the strike and the raw emotion of the celebration.",
+  const handleCopy = () => {
+    navigator.clipboard.writeText(summaries[summaryLength]);
+    toast({ title: "Copied to clipboard", description: "Summary text copied" });
+  };
+
+  const handleDownloadPdf = () => {
+    const text = `Video Summary (${summaryLength})\n\n${summaries[summaryLength]}\n\nKey Moments:\n${mockKeyMoments.map(m => `[${m.time}] ${m.desc}`).join("\n")}`;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "video-summary.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Downloaded", description: "video-summary.txt saved" });
   };
 
   if (!hasVideo) {
@@ -56,7 +76,6 @@ const SummarizePage = () => {
 
       {!summarized ? (
         <div className="text-center animate-slide-up mt-6 space-y-4">
-          {/* Summary length selector */}
           <div className="flex justify-center gap-2">
             {(["short", "medium", "detailed"] as const).map((len) => (
               <button
@@ -82,7 +101,6 @@ const SummarizePage = () => {
         </div>
       ) : (
         <div className="animate-slide-up space-y-6 mt-6">
-          {/* Length toggle */}
           <div className="flex gap-2">
             {(["short", "medium", "detailed"] as const).map((len) => (
               <button
@@ -120,11 +138,11 @@ const SummarizePage = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
+            <button onClick={handleCopy} className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Copy summary
             </button>
-            <button className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
-              Download as PDF
+            <button onClick={handleDownloadPdf} className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
+              Download as TXT
             </button>
           </div>
 

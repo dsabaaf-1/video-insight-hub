@@ -5,6 +5,7 @@ import PreloadedBanner from "../components/PreloadedBanner";
 import NextSteps from "../components/NextSteps";
 import VideoPlayer from "../components/VideoPlayer";
 import { useVideo } from "@/contexts/VideoContext";
+import { useToast } from "@/hooks/use-toast";
 
 const mockTranscript = [
   { time: "0:00", text: "Welcome to today's match coverage. We're here at the stadium with thousands of fans eagerly waiting for kickoff." },
@@ -16,6 +17,7 @@ const mockTranscript = [
 
 const TranscribePage = () => {
   const { hasVideo, setVideo, filename } = useVideo();
+  const { toast } = useToast();
   const [showBanner, setShowBanner] = useState(true);
   const [transcribed, setTranscribed] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -28,7 +30,43 @@ const TranscribePage = () => {
     setTimeout(() => {
       setProcessing(false);
       setTranscribed(true);
+      toast({ title: "Transcription complete", description: "5 segments transcribed with timestamps" });
     }, 2500);
+  };
+
+  const handleCopy = () => {
+    const text = mockTranscript.map(l => `[${l.time}] ${l.text}`).join("\n");
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard", description: "Full transcript copied" });
+  };
+
+  const handleDownloadTxt = () => {
+    const text = mockTranscript.map(l => `[${l.time}] ${l.text}`).join("\n");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transcript.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Downloaded", description: "transcript.txt saved" });
+  };
+
+  const handleDownloadSrt = () => {
+    const srt = mockTranscript.map((l, i) => {
+      const start = l.time.replace(":", "00:0") + ",000";
+      const nextTime = mockTranscript[i + 1]?.time || "0:16";
+      const end = nextTime.replace(":", "00:0") + ",000";
+      return `${i + 1}\n${start} --> ${end}\n${l.text}\n`;
+    }).join("\n");
+    const blob = new Blob([srt], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transcript.srt";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Downloaded", description: "transcript.srt saved" });
   };
 
   if (!hasVideo) {
@@ -91,13 +129,13 @@ const TranscribePage = () => {
           </div>
 
           <div className="flex flex-wrap gap-3 mb-2">
-            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
+            <button onClick={handleCopy} className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Copy transcript
             </button>
-            <button className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
+            <button onClick={handleDownloadTxt} className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Download as TXT
             </button>
-            <button className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
+            <button onClick={handleDownloadSrt} className="border border-border text-foreground bg-card hover:bg-muted text-[13px] font-medium px-4 py-2 rounded-btn transition-all min-h-[44px]">
               Download as SRT
             </button>
           </div>

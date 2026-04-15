@@ -4,14 +4,17 @@ import PreloadedBanner from "../components/PreloadedBanner";
 import NextSteps from "../components/NextSteps";
 import VideoPlayer from "../components/VideoPlayer";
 import { useVideo } from "@/contexts/VideoContext";
+import { useToast } from "@/hooks/use-toast";
 
 const ExtractPage = () => {
   const { hasVideo, setVideo, filename } = useVideo();
+  const { toast } = useToast();
   const [showBanner, setShowBanner] = useState(true);
   const [extracted, setExtracted] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [interval, setIntervalVal] = useState("2s");
   const [format, setFormat] = useState("JPG");
+  const [quality, setQuality] = useState(90);
   const [selectedFrames, setSelectedFrames] = useState<Set<number>>(new Set());
 
   const handleUpload = (file: File) => setVideo(file);
@@ -21,6 +24,7 @@ const ExtractPage = () => {
     setTimeout(() => {
       setExtracting(false);
       setExtracted(true);
+      toast({ title: "Frames extracted", description: `9 frames extracted every ${interval} as ${format} (quality ${quality}%)` });
     }, 2000);
   };
 
@@ -30,6 +34,14 @@ const ExtractPage = () => {
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+  };
+
+  const handleDownloadAll = () => {
+    toast({ title: "Downloading all frames", description: "Preparing 9 frames as a ZIP archive…" });
+  };
+
+  const handleDownloadSelected = () => {
+    toast({ title: `Downloading ${selectedFrames.size} frames`, description: `Preparing selected frames as ${format}…` });
   };
 
   if (!hasVideo) {
@@ -50,7 +62,6 @@ const ExtractPage = () => {
 
       <VideoPlayer compact />
 
-      {/* Settings */}
       <div className="bg-card border border-border rounded-card p-4 md:p-6 mb-6 mt-4 animate-slide-up">
         <h2 className="text-[15px] font-semibold mb-4">Extraction Settings</h2>
         <div className="flex flex-wrap gap-4 md:gap-6 items-end">
@@ -79,9 +90,16 @@ const ExtractPage = () => {
               <option>WEBP</option>
             </select>
           </div>
-          <div className="hidden md:block">
-            <label className="text-[12px] text-muted-foreground block mb-1">Quality</label>
-            <input type="range" min="50" max="100" defaultValue="90" className="w-32 accent-amber-500" />
+          <div>
+            <label className="text-[12px] text-muted-foreground block mb-1">Quality: {quality}%</label>
+            <input
+              type="range"
+              min="50"
+              max="100"
+              value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
+              className="w-32 accent-amber-500"
+            />
           </div>
           <button
             onClick={handleExtract}
@@ -93,7 +111,6 @@ const ExtractPage = () => {
         </div>
       </div>
 
-      {/* Frames Grid */}
       {extracted && (
         <div className="animate-slide-up">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6">
@@ -120,11 +137,17 @@ const ExtractPage = () => {
             ))}
           </div>
           <div className="flex flex-wrap gap-3">
-            <button className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] hover:scale-[1.02]">
+            <button
+              onClick={handleDownloadAll}
+              className="bg-amber-500 hover:bg-amber-600 text-primary-foreground text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] hover:scale-[1.02]"
+            >
               Download all frames
             </button>
             {selectedFrames.size > 0 && (
-              <button className="border border-amber-500 text-amber-600 bg-card hover:bg-amber-50 text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] animate-fade-in">
+              <button
+                onClick={handleDownloadSelected}
+                className="border border-amber-500 text-amber-600 bg-card hover:bg-amber-50 text-[13px] font-medium px-5 py-2 rounded-btn transition-all min-h-[44px] animate-fade-in"
+              >
                 Download {selectedFrames.size} selected
               </button>
             )}
